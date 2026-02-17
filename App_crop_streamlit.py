@@ -365,7 +365,7 @@ if "yield_pred" in locals() and "ndvi_val" in locals():
             st.error("⚠️ HuggingFace token not found in secrets.toml")
             st.stop()
     
-        API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
+        API_URL = "https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.2"
     
         headers = {
             "Authorization": f"Bearer {HF_TOKEN}",
