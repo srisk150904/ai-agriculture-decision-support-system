@@ -345,7 +345,7 @@ if "yield_pred" in locals() and "ndvi_val" in locals():
 
 
     # ---------------------------------------------------
-    # TAB 2 — AI-GENERATED AGRONOMIC ADVISORY (HuggingFace)
+    # TAB 2 — AI-GENERATED AGRONOMIC ADVISORY (HF Router - Chat API)
     # ---------------------------------------------------
     with tab2:
         import requests
@@ -354,7 +354,7 @@ if "yield_pred" in locals() and "ndvi_val" in locals():
     
         st.subheader("🌿 AI-Powered Agronomic Advisory")
     
-        # 🔐 Load token from secrets.toml (manual load)
+        # 🔐 Load token
         try:
             secrets = toml.load("secrets.toml")
             HF_TOKEN = secrets.get("HF_TOKEN")
@@ -365,7 +365,7 @@ if "yield_pred" in locals() and "ndvi_val" in locals():
             st.error("⚠️ HuggingFace token not found in secrets.toml")
             st.stop()
     
-        API_URL = "https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.2"
+        API_URL = "https://router.huggingface.co/v1/chat/completions"
     
         headers = {
             "Authorization": f"Bearer {HF_TOKEN}",
@@ -378,7 +378,6 @@ if "yield_pred" in locals() and "ndvi_val" in locals():
     Based on the following crop and satellite analysis results,
     provide a structured, farmer-friendly advisory.
     
-    INPUT DATA:
     Area: {area:.2f} acres
     Sowing Month: {sow_mon}
     Harvest Month: {har_mon}
@@ -392,44 +391,32 @@ if "yield_pred" in locals() and "ndvi_val" in locals():
     
     Predicted Yield: {yield_pred:.2f} kg/acre
     
-    REQUIRED OUTPUT:
+    Include:
     1. NDVI interpretation
     2. Radar interpretation
     3. Irrigation & nutrient advice
     4. Yield evaluation
     5. Motivational closing line
-    
-    Keep it concise and practical.
     """
     
         payload = {
-            "inputs": ai_prompt,
-            "parameters": {
-                "max_new_tokens": 350,
-                "temperature": 0.6,
-                "return_full_text": False
-            }
+            "model": "mistralai/Mistral-7B-Instruct-v0.2",
+            "messages": [
+                {"role": "user", "content": ai_prompt}
+            ],
+            "max_tokens": 350,
+            "temperature": 0.6
         }
     
         try:
             with st.spinner("🧠 Generating AI advisory..."):
                 response = requests.post(API_URL, headers=headers, json=payload, timeout=120)
     
-            # 🔹 Model cold start handling
-            if response.status_code == 503:
-                st.warning("⏳ Model is loading on HuggingFace servers. Please wait 20–30 seconds and try again.")
-                st.stop()
-    
             if response.status_code == 200:
                 result = response.json()
-    
-                if isinstance(result, list) and "generated_text" in result[0]:
-                    advisory = result[0]["generated_text"]
-                    st.success("✅ AI Advisory Generated")
-                    st.write(advisory)
-                else:
-                    st.warning("⚠️ Unexpected response format")
-                    st.json(result)
+                advisory = result["choices"][0]["message"]["content"]
+                st.success("✅ AI Advisory Generated")
+                st.write(advisory)
     
             else:
                 st.error(f"⚠️ HuggingFace API Error: {response.status_code}")
@@ -438,6 +425,7 @@ if "yield_pred" in locals() and "ndvi_val" in locals():
         except Exception as e:
             st.error("⚠️ AI advisory unavailable.")
             st.caption(str(e))
+
 
 
     # # ---------------------------------------------------
