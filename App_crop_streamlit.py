@@ -349,74 +349,86 @@ if "yield_pred" in locals() and "ndvi_val" in locals():
     # ---------------------------------------------------
     with tab2:
         import requests
-        import os
+        import streamlit as st
     
         st.subheader("🌿 AI-Powered Agronomic Advisory")
     
-        # 🔐 Replace with your HuggingFace token
-        HF_TOKEN = st.secrets.get("HF_TOKEN") or "YOUR_HF_TOKEN_HERE"
+        # 🔐 Load token securely
+        HF_TOKEN = st.secrets.get("HF_TOKEN")
     
-        API_URL = "https://router.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
+        if not HF_TOKEN:
+            st.warning("⚠️ HuggingFace token not found in Streamlit secrets.")
+            st.stop()
+    
+        # ✅ Official HuggingFace Inference API endpoint
+        API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
+    
         headers = {
-            "Authorization": f"Bearer {HF_TOKEN}"
+            "Authorization": f"Bearer {HF_TOKEN}",
+            "Content-Type": "application/json"
         }
     
         ai_prompt = f"""
-        You are an expert agronomist and agricultural data scientist.
+    You are an expert agronomist and agricultural data scientist.
     
-        Based on the following crop and satellite analysis results,
-        provide a clear, structured, farmer-friendly advisory.
+    Based on the following crop and satellite analysis results,
+    provide a clear, structured, farmer-friendly advisory.
     
-        ----------------------------
-        INPUT DATA
-        ----------------------------
-        Area: {area:.2f} acres
-        Sowing Month: {sow_mon}
-        Harvest Month: {har_mon}
-        Sowing → Transplant Days: {sow_to_trans_days}
-        Transplant → Harvest Days: {trans_to_har_days}
+    INPUT DATA:
+    Area: {area:.2f} acres
+    Sowing Month: {sow_mon}
+    Harvest Month: {har_mon}
+    Sowing → Transplant Days: {sow_to_trans_days}
+    Transplant → Harvest Days: {trans_to_har_days}
     
-        NDVI: {ndvi_val:.3f}
-        VV_mean: {VV_mean:.3f}
-        VH_mean: {VH_mean:.3f}
-        VH/VV ratio: {VH_VV_ratio:.3f}
+    NDVI: {ndvi_val:.3f}
+    VV_mean: {VV_mean:.3f}
+    VH_mean: {VH_mean:.3f}
+    VH/VV ratio: {VH_VV_ratio:.3f}
     
-        Predicted Yield: {yield_pred:.2f} kg/acre
+    Predicted Yield: {yield_pred:.2f} kg/acre
     
-        ----------------------------
-        REQUIRED OUTPUT
-        ----------------------------
-        1. NDVI interpretation
-        2. Radar interpretation
-        3. Irrigation & nutrient advice
-        4. Yield evaluation
-        5. Motivational closing line
+    REQUIRED OUTPUT:
+    1. NDVI interpretation
+    2. Radar interpretation
+    3. Irrigation & nutrient advice
+    4. Yield evaluation
+    5. Motivational closing line
     
-        Keep the explanation concise and easy to understand.
-        """
+    Keep the explanation concise and easy to understand.
+    """
     
         payload = {
             "inputs": ai_prompt,
             "parameters": {
-                "max_new_tokens": 400,
-                "temperature": 0.6
+                "max_new_tokens": 350,
+                "temperature": 0.6,
+                "return_full_text": False
             }
         }
     
         try:
             with st.spinner("🧠 Generating AI advisory using Mistral-7B..."):
-                response = requests.post(API_URL, headers=headers, json=payload)
+                response = requests.post(API_URL, headers=headers, json=payload, timeout=60)
     
             if response.status_code == 200:
                 result = response.json()
-                generated_text = result[0]["generated_text"]
-                st.write(generated_text)
+    
+                # Safe extraction
+                if isinstance(result, list) and "generated_text" in result[0]:
+                    generated_text = result[0]["generated_text"]
+                    st.success("✅ Advisory Generated")
+                    st.write(generated_text)
+                else:
+                    st.warning("⚠️ Unexpected response format.")
+                    st.json(result)
+    
             else:
-                st.warning("⚠️ HuggingFace API Error")
+                st.warning(f"⚠️ HuggingFace API Error: {response.status_code}")
                 st.caption(response.text)
     
         except Exception as e:
-            st.warning("⚠️ AI advisory unavailable.")
+            st.error("⚠️ AI advisory unavailable.")
             st.caption(str(e))
 
     # # ---------------------------------------------------
