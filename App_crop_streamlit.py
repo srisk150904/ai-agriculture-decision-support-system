@@ -353,10 +353,10 @@ if "yield_pred" in locals() and "ndvi_val" in locals():
         genai.configure(api_key="AIzaSyBBKgwflgq7lEWn130W8BE_Qask6SYHHVo")
 
         try:
-            model_explainer = genai.GenerativeModel("gemini-1.5-flash")
+            model_explainer = genai.GenerativeModel("gemini-1.5-pro")
         except Exception:
             st.warning("⚠️ Unable to load Gemini-2.0-flash. Using gemini-1.5-pro instead.")
-            model_explainer = genai.GenerativeModel("gemini-1.5-flash")
+            model_explainer = genai.GenerativeModel("gemini-1.5-pro")
 
         ai_prompt = f"""
         You are an expert agronomist and data scientist.
