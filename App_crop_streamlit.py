@@ -343,61 +343,137 @@ if "yield_pred" in locals() and "ndvi_val" in locals():
         - Sowing–harvest period: {sow_m} to {har_m} (~{sow_to_trans_days + trans_to_har_days} days)
         """)
 
+
     # ---------------------------------------------------
-    # TAB 2 — AI-GENERATED AGRONOMIC ADVISORY
+    # TAB 2 — AI-GENERATED AGRONOMIC ADVISORY (HuggingFace)
     # ---------------------------------------------------
     with tab2:
-        import google.generativeai as genai
+        import requests
         import os
-
-        genai.configure(api_key="AIzaSyBBKgwflgq7lEWn130W8BE_Qask6SYHHVo")
-
-        try:
-            model_explainer = genai.GenerativeModel("gemini-1.5-pro")
-        except Exception:
-            st.warning("⚠️ Unable to load Gemini-2.0-flash. Using gemini-1.5-pro instead.")
-            model_explainer = genai.GenerativeModel("gemini-1.5-pro")
-
+    
+        st.subheader("🌿 AI-Powered Agronomic Advisory")
+    
+        # 🔐 Replace with your HuggingFace token
+        HF_TOKEN = st.secrets.get("HF_TOKEN") or "YOUR_HF_TOKEN_HERE"
+    
+        API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
+        headers = {
+            "Authorization": f"Bearer {HF_TOKEN}"
+        }
+    
         ai_prompt = f"""
-        You are an expert agronomist and data scientist.
-        Based on the following crop and satellite analysis results, explain the findings
-        and provide clear, actionable recommendations to the farmer.
-
-        ---
-        **Input Data Summary:**
-        - Area: {area:.2f} acres
-        - Sowing Month: {sow_mon}
-        - Harvest Month: {har_mon}
-        - Sowing → Transplant Days: {sow_to_trans_days}
-        - Transplant → Harvest Days: {trans_to_har_days}
-
-        **Computed Satellite Metrics:**
-        - NDVI: {ndvi_val:.3f}
-        - VV_mean: {VV_mean:.3f}
-        - VH_mean: {VH_mean:.3f}
-        - VH/VV ratio: {VH_VV_ratio:.3f}
-        - Power-transformed ratio: {VH_VV_ratio_trans2:.3f}
-
-        **Predicted Yield:**
-        - {yield_pred:.2f} kg/acre
-
-        ---
-        Generate a concise, well-structured explanation that includes:
-        - NDVI interpretation (crop greenness)
-        - Radar interpretation (moisture & canopy)
-        - Agronomic advice (irrigation, nutrients, timing)
-        - Yield evaluation & motivation for farmer
-        Avoid jargon and keep it farmer-friendly.
+        You are an expert agronomist and agricultural data scientist.
+    
+        Based on the following crop and satellite analysis results,
+        provide a clear, structured, farmer-friendly advisory.
+    
+        ----------------------------
+        INPUT DATA
+        ----------------------------
+        Area: {area:.2f} acres
+        Sowing Month: {sow_mon}
+        Harvest Month: {har_mon}
+        Sowing → Transplant Days: {sow_to_trans_days}
+        Transplant → Harvest Days: {trans_to_har_days}
+    
+        NDVI: {ndvi_val:.3f}
+        VV_mean: {VV_mean:.3f}
+        VH_mean: {VH_mean:.3f}
+        VH/VV ratio: {VH_VV_ratio:.3f}
+    
+        Predicted Yield: {yield_pred:.2f} kg/acre
+    
+        ----------------------------
+        REQUIRED OUTPUT
+        ----------------------------
+        1. NDVI interpretation
+        2. Radar interpretation
+        3. Irrigation & nutrient advice
+        4. Yield evaluation
+        5. Motivational closing line
+    
+        Keep the explanation concise and easy to understand.
         """
+    
+        payload = {
+            "inputs": ai_prompt,
+            "parameters": {
+                "max_new_tokens": 400,
+                "temperature": 0.6
+            }
+        }
+    
+        try:
+            with st.spinner("🧠 Generating AI advisory using Mistral-7B..."):
+                response = requests.post(API_URL, headers=headers, json=payload)
+    
+            if response.status_code == 200:
+                result = response.json()
+                generated_text = result[0]["generated_text"]
+                st.write(generated_text)
+            else:
+                st.warning("⚠️ HuggingFace API Error")
+                st.caption(response.text)
+    
+        except Exception as e:
+            st.warning("⚠️ AI advisory unavailable.")
+            st.caption(str(e))
 
-        if model_explainer:
-            try:
-                with st.spinner("🧠 Generating expert interpretation using Gemini..."):
-                    ai_response = model_explainer.generate_content(ai_prompt)
-                st.subheader("🌿 AI-Powered Agronomic Advisory")
-                st.write(ai_response.text)
-            except Exception as e:
-                st.warning("⚠️ Gemini model could not generate a response.")
-                st.caption(str(e))
-        else:
-            st.info("💡 AI advisory unavailable — Gemini model not initialized.")
+    # # ---------------------------------------------------
+    # # TAB 2 — AI-GENERATED AGRONOMIC ADVISORY
+    # # ---------------------------------------------------
+    # with tab2:
+    #     import google.generativeai as genai
+    #     import os
+
+    #     genai.configure(api_key="AIzaSyBBKgwflgq7lEWn130W8BE_Qask6SYHHVo")
+
+    #     try:
+    #         model_explainer = genai.GenerativeModel("gemini-1.5-pro")
+    #     except Exception:
+    #         st.warning("⚠️ Unable to load Gemini-2.0-flash. Using gemini-1.5-pro instead.")
+    #         model_explainer = genai.GenerativeModel("gemini-1.5-pro")
+
+    #     ai_prompt = f"""
+    #     You are an expert agronomist and data scientist.
+    #     Based on the following crop and satellite analysis results, explain the findings
+    #     and provide clear, actionable recommendations to the farmer.
+
+    #     ---
+    #     **Input Data Summary:**
+    #     - Area: {area:.2f} acres
+    #     - Sowing Month: {sow_mon}
+    #     - Harvest Month: {har_mon}
+    #     - Sowing → Transplant Days: {sow_to_trans_days}
+    #     - Transplant → Harvest Days: {trans_to_har_days}
+
+    #     **Computed Satellite Metrics:**
+    #     - NDVI: {ndvi_val:.3f}
+    #     - VV_mean: {VV_mean:.3f}
+    #     - VH_mean: {VH_mean:.3f}
+    #     - VH/VV ratio: {VH_VV_ratio:.3f}
+    #     - Power-transformed ratio: {VH_VV_ratio_trans2:.3f}
+
+    #     **Predicted Yield:**
+    #     - {yield_pred:.2f} kg/acre
+
+    #     ---
+    #     Generate a concise, well-structured explanation that includes:
+    #     - NDVI interpretation (crop greenness)
+    #     - Radar interpretation (moisture & canopy)
+    #     - Agronomic advice (irrigation, nutrients, timing)
+    #     - Yield evaluation & motivation for farmer
+    #     Avoid jargon and keep it farmer-friendly.
+    #     """
+
+    #     if model_explainer:
+    #         try:
+    #             with st.spinner("🧠 Generating expert interpretation using Gemini..."):
+    #                 ai_response = model_explainer.generate_content(ai_prompt)
+    #             st.subheader("🌿 AI-Powered Agronomic Advisory")
+    #             st.write(ai_response.text)
+    #         except Exception as e:
+    #             st.warning("⚠️ Gemini model could not generate a response.")
+    #             st.caption(str(e))
+    #     else:
+    #         st.info("💡 AI advisory unavailable — Gemini model not initialized.")
