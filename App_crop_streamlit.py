@@ -350,17 +350,21 @@ if "yield_pred" in locals() and "ndvi_val" in locals():
     with tab2:
         import requests
         import streamlit as st
+        import toml
     
         st.subheader("🌿 AI-Powered Agronomic Advisory")
     
-        # 🔐 Load token securely
-        HF_TOKEN = st.secrets.get("HF_TOKEN")
+        # 🔐 Load token from secrets.toml (manual load)
+        try:
+            secrets = toml.load("secrets.toml")
+            HF_TOKEN = secrets.get("HF_TOKEN")
+        except Exception:
+            HF_TOKEN = None
     
         if not HF_TOKEN:
-            st.warning("⚠️ HuggingFace token not found in Streamlit secrets.")
+            st.error("⚠️ HuggingFace token not found in secrets.toml")
             st.stop()
     
-        # ✅ Official HuggingFace Inference API endpoint
         API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
     
         headers = {
@@ -372,7 +376,7 @@ if "yield_pred" in locals() and "ndvi_val" in locals():
     You are an expert agronomist and agricultural data scientist.
     
     Based on the following crop and satellite analysis results,
-    provide a clear, structured, farmer-friendly advisory.
+    provide a structured, farmer-friendly advisory.
     
     INPUT DATA:
     Area: {area:.2f} acres
@@ -395,7 +399,7 @@ if "yield_pred" in locals() and "ndvi_val" in locals():
     4. Yield evaluation
     5. Motivational closing line
     
-    Keep the explanation concise and easy to understand.
+    Keep it concise and practical.
     """
     
         payload = {
@@ -408,28 +412,33 @@ if "yield_pred" in locals() and "ndvi_val" in locals():
         }
     
         try:
-            with st.spinner("🧠 Generating AI advisory using Mistral-7B..."):
-                response = requests.post(API_URL, headers=headers, json=payload, timeout=60)
+            with st.spinner("🧠 Generating AI advisory..."):
+                response = requests.post(API_URL, headers=headers, json=payload, timeout=120)
+    
+            # 🔹 Model cold start handling
+            if response.status_code == 503:
+                st.warning("⏳ Model is loading on HuggingFace servers. Please wait 20–30 seconds and try again.")
+                st.stop()
     
             if response.status_code == 200:
                 result = response.json()
     
-                # Safe extraction
                 if isinstance(result, list) and "generated_text" in result[0]:
-                    generated_text = result[0]["generated_text"]
-                    st.success("✅ Advisory Generated")
-                    st.write(generated_text)
+                    advisory = result[0]["generated_text"]
+                    st.success("✅ AI Advisory Generated")
+                    st.write(advisory)
                 else:
-                    st.warning("⚠️ Unexpected response format.")
+                    st.warning("⚠️ Unexpected response format")
                     st.json(result)
     
             else:
-                st.warning(f"⚠️ HuggingFace API Error: {response.status_code}")
+                st.error(f"⚠️ HuggingFace API Error: {response.status_code}")
                 st.caption(response.text)
     
         except Exception as e:
             st.error("⚠️ AI advisory unavailable.")
             st.caption(str(e))
+
 
     # # ---------------------------------------------------
     # # TAB 2 — AI-GENERATED AGRONOMIC ADVISORY
