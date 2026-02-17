@@ -373,31 +373,40 @@ if "yield_pred" in locals() and "ndvi_val" in locals():
         }
     
         ai_prompt = f"""
-    You are an expert agronomist and agricultural data scientist.
-    
-    Based on the following crop and satellite analysis results,
-    provide a structured, farmer-friendly advisory.
-    
-    Area: {area:.2f} acres
-    Sowing Month: {sow_mon}
-    Harvest Month: {har_mon}
-    Sowing → Transplant Days: {sow_to_trans_days}
-    Transplant → Harvest Days: {trans_to_har_days}
-    
-    NDVI: {ndvi_val:.3f}
-    VV_mean: {VV_mean:.3f}
-    VH_mean: {VH_mean:.3f}
-    VH/VV ratio: {VH_VV_ratio:.3f}
-    
-    Predicted Yield: {yield_pred:.2f} kg/acre
-    
-    Include:
-    1. NDVI interpretation
-    2. Radar interpretation
-    3. Irrigation & nutrient advice
-    4. Yield evaluation
-    5. Motivational closing line
-    """
+        You are an agricultural decision-support AI assisting a farmer.
+        
+        You MUST analyze the numbers logically and give practical field-level advice.
+        Do NOT assume crop type unless explicitly provided.
+        
+        FIELD DATA:
+        Area: {area:.2f} acres
+        Sowing Month: {sow_mon}
+        Harvest Month: {har_mon}
+        Sowing → Transplant Days: {sow_to_trans_days}
+        Transplant → Harvest Days: {trans_to_har_days}
+        
+        SATELLITE METRICS:
+        NDVI: {ndvi_val:.3f}
+        VV_mean: {VV_mean:.3f}
+        VH_mean: {VH_mean:.3f}
+        VH/VV ratio: {VH_VV_ratio:.3f}
+        
+        MODEL OUTPUT:
+        Predicted Yield: {yield_pred:.2f} kg/acre
+        
+        INSTRUCTIONS:
+        1. Clearly interpret NDVI level (low/moderate/high) with reasoning.
+        2. Interpret radar backscatter for moisture/canopy condition.
+        3. Assess if crop is under stress or healthy.
+        4. Suggest 3 specific field-level actions (irrigation/fertilizer/pest check).
+        5. Provide risk level (Low / Moderate / High).
+        6. Give yield outlook summary in one line.
+        7. End with one motivational but realistic sentence.
+        
+        Keep it concise, practical, and farmer-focused.
+        Avoid long theory explanations.
+        """
+
     
         payload = {
             "model": "mistralai/Mistral-7B-Instruct-v0.2",
