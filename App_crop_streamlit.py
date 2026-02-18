@@ -504,14 +504,21 @@ with tab3:
         Predicted Paddy Yield: {st.session_state.yield_pred:.2f} kg/acre
         """
 
+        # ✅ Define combined_prompt OUTSIDE dictionary
+        combined_prompt = f"""
+        {context_data}
+
+        FARMER QUESTION:
+        {user_question}
+        """
+
         payload = {
             "model": "mistralai/Mistral-7B-Instruct-v0.2",
             "messages": [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": context_data},
-                {"role": "user", "content": user_question}
+                {"role": "user", "content": combined_prompt}
             ],
-            "max_tokens": 400,
+            "max_tokens": 250,   # reduced for stability
             "temperature": 0.7
         }
 
@@ -531,7 +538,6 @@ with tab3:
         except Exception as e:
             st.error("⚠️ Unable to generate response.")
             st.caption(str(e))
-
 
 
 
