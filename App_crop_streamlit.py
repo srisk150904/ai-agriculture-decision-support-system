@@ -3,6 +3,11 @@ import numpy as np
 import joblib
 import tensorflow as tf
 import tempfile
+import faiss
+import pickle
+import numpy as np
+from sentence_transformers import SentenceTransformer
+
 from sklearn.preprocessing import PowerTransformer
 if "yield_pred" not in st.session_state:
     st.session_state.yield_pred = None
@@ -247,10 +252,11 @@ if st.button("🔍 Run Prediction"):
 #     # Create two tabs for cleaner layout
 #     tab1, tab2, tab3 = st.tabs(["📈 Yield & Economic Summary", "🌿 AI-Powered Advisory", "Promt"])
 
-tab1, tab2, tab3 = st.tabs([
-    "📈 Yield & Economic Summary",
-    "🌿 AI-Powered Advisory",
-    "💬 Ask AI"
+tab1, tab2, tab3, tab4 = st.tabs([
+    "📈 Yield & Economic Interpretation",
+    "🌿 LLM Advisory (HF Router)",
+    "💬 Live AI Q&A",
+    "Agro RAG Knowledge Bot"
 ]) 
 # ---------------------------------------------------
 # TAB 1 — YIELD AND ECONOMIC INTERPRETATION
@@ -592,6 +598,55 @@ with tab3:
         except Exception as e:
             st.error("⚠️ Unable to generate response.")
             st.caption(str(e))
+
+@st.cache_resource
+def load_rag_components():
+    model = SentenceTransformer("all-MiniLM-L6-v2")
+
+    index = faiss.read_index("agri_qa_faiss.index")
+
+    with open("agri_qa_data.pkl", "rb") as f:
+        data = pickle.load(f)
+
+    return model, index, data
+
+# ---------------------------------------------------
+# TAB 4 — Agricultural Knowledge Assistant (RAG)
+# ---------------------------------------------------
+with tab4:
+
+    st.subheader("📚 Agricultural Knowledge Assistant (RAG Powered)")
+
+    model, index, data = load_rag_components()
+
+    user_query = st.text_area(
+        "Ask any agriculture-related question:",
+        placeholder="Example: How to increase paddy yield? How to prevent soil erosion?"
+    )
+
+    if st.button("Search Knowledge Base"):
+
+        if not user_query.strip():
+            st.warning("Please enter a question.")
+            st.stop()
+
+        with st.spinner("🔎 Searching knowledge base..."):
+
+            # 1️⃣ Encode query
+            query_embedding = model.encode([user_query]).astype("float32")
+
+            # 2️⃣ Search FAISS
+            k = 3
+            distances, indices = index.search(query_embedding, k)
+
+            # 3️⃣ Retrieve top matches
+            st.success("Top Retrieved Answers:")
+
+            for i, idx in enumerate(indices[0]):
+                st.markdown(f"### Result {i+1}")
+                st.write("**Q:**", data["questions"][idx])
+                st.write("**A:**", data["answers"][idx])
+                st.write("---")
 
 
 
