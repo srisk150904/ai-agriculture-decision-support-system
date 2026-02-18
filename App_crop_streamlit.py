@@ -350,19 +350,17 @@ if "yield_pred" in locals() and "ndvi_val" in locals():
     with tab2:
         import requests
         import streamlit as st
-        import toml
     
         st.subheader("🌿 AI-Powered Agronomic Advisory")
     
-        # 🔐 Load token
+        # 🔐 Secure token from Streamlit Cloud
         try:
-            secrets = toml.load("secrets.toml")
-            HF_TOKEN = secrets.get("HF_TOKEN")
+            HF_TOKEN = st.secrets["HF_TOKEN"]
         except Exception:
             HF_TOKEN = None
     
         if not HF_TOKEN:
-            st.error("⚠️ HuggingFace token not found in secrets.toml")
+            st.error("⚠️ HuggingFace token not configured in Streamlit secrets.")
             st.stop()
     
         API_URL = "https://router.huggingface.co/v1/chat/completions"
@@ -372,47 +370,46 @@ if "yield_pred" in locals() and "ndvi_val" in locals():
             "Content-Type": "application/json"
         }
     
-        ai_prompt = f"""
-        You are an agricultural decision-support AI assisting a farmer.
-        
-        You MUST analyze the numbers logically and give practical field-level advice.
-        This is for paddy crops grown in kaveri-delta region.
-        so based on the land metadat and crop data help the framer to make decisions, give advice, how to handle the situation...
-        Make content user friendly, less techninal, less formal.
-        
+        system_prompt = """
+        You are an expert agronomist specialized in paddy cultivation
+        in the Kaveri delta region of Tamil Nadu.
+    
+        You provide highly practical, region-specific, field-level advice.
+        Avoid theory. Avoid generic advice.
+        Base reasoning strictly on provided field data.
+        """
+    
+        user_prompt = f"""
         FIELD DATA:
         Area: {area:.2f} acres
         Sowing Month: {sow_mon}
         Harvest Month: {har_mon}
         Sowing → Transplant Days: {sow_to_trans_days}
         Transplant → Harvest Days: {trans_to_har_days}
-        
+    
         SATELLITE METRICS:
         NDVI: {ndvi_val:.3f}
         VV_mean: {VV_mean:.3f}
-        VH_mean: {VH_mean:.3f}
-        VH/VV ratio: {VH_VV_ratio:.3f}
-        
+        VH_mean: {VH_VV_ratio:.3f}
+    
         MODEL OUTPUT:
         Predicted Yield: {yield_pred:.2f} kg/acre
-        
-        INSTRUCTIONS:
-        1. Clearly interpret NDVI level (low/moderate/high) with reasoning.
-        2. Interpret radar backscatter for moisture/canopy condition.
-        3. Assess if crop is under stress or healthy.
-        4. Suggest 3 specific field-level actions (irrigation/fertilizer/pest check).
-        5. Provide risk level (Low / Moderate / High).
-        6. Give yield outlook summary in one line, advice on what to do and what not, how to be carefull if choosing this land for growing paddy crops.
-        7. End with one motivational but realistic sentence.
-        
-        Keep practical, and farmer-focused.
+    
+        Provide:
+        1. NDVI interpretation
+        2. Radar moisture/canopy interpretation
+        3. Stress assessment
+        4. 3 actionable steps
+        5. Risk level (Low / Moderate / High)
+        6. One-line yield outlook
+        7. Short realistic encouragement
         """
-
     
         payload = {
             "model": "mistralai/Mistral-7B-Instruct-v0.2",
             "messages": [
-                {"role": "user", "content": ai_prompt}
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
             ],
             "max_tokens": 350,
             "temperature": 0.6
@@ -427,7 +424,6 @@ if "yield_pred" in locals() and "ndvi_val" in locals():
                 advisory = result["choices"][0]["message"]["content"]
                 st.success("✅ AI Advisory Generated")
                 st.write(advisory)
-    
             else:
                 st.error(f"⚠️ HuggingFace API Error: {response.status_code}")
                 st.caption(response.text)
@@ -435,6 +431,95 @@ if "yield_pred" in locals() and "ndvi_val" in locals():
         except Exception as e:
             st.error("⚠️ AI advisory unavailable.")
             st.caption(str(e))
+
+    # ---------------------------------------------------
+    # TAB 3 — LIVE FARMER QUERY (Interactive GenAI)
+    # ---------------------------------------------------
+    with tab3:
+        import requests
+        import streamlit as st
+    
+        st.subheader("💬 Ask the Agronomic AI (Live)")
+    
+        try:
+            HF_TOKEN = st.secrets["HF_TOKEN"]
+        except Exception:
+            HF_TOKEN = None
+    
+        if not HF_TOKEN:
+            st.error("⚠️ HuggingFace token not configured.")
+            st.stop()
+    
+        API_URL = "https://router.huggingface.co/v1/chat/completions"
+    
+        headers = {
+            "Authorization": f"Bearer {HF_TOKEN}",
+            "Content-Type": "application/json"
+        }
+    
+        # 🎯 User Input Box
+        user_question = st.text_area(
+            "Ask your question about this land (Paddy – Kaveri Delta specific):",
+            placeholder="Example: Why is my yield low? Can I grow paddy here? How to increase profit? What crop is better?"
+        )
+    
+        if st.button("Generate Answer"):
+    
+            if not user_question.strip():
+                st.warning("Please enter a question.")
+                st.stop()
+    
+            system_prompt = """
+            You are an expert agricultural decision-support AI
+            specialized in paddy cultivation in Kaveri delta region of Tamil Nadu.
+    
+            You must:
+            - Answer only based on provided field data.
+            - Give practical, realistic advice.
+            - Avoid generic textbook answers.
+            - If yield is low, explain why using NDVI and radar.
+            - If crop suitability is asked, evaluate risk properly.
+            - If alternative crops are asked, suggest region-suitable options (e.g., sugarcane, pulses, maize).
+            """
+    
+            context_data = f"""
+            FIELD CONTEXT:
+            Area: {area:.2f} acres
+            Sowing Month: {sow_mon}
+            Harvest Month: {har_mon}
+            NDVI: {ndvi_val:.3f}
+            VH/VV ratio: {VH_VV_ratio:.3f}
+            Predicted Paddy Yield: {yield_pred:.2f} kg/acre
+            """
+    
+            payload = {
+                "model": "mistralai/Mistral-7B-Instruct-v0.2",
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": context_data},
+                    {"role": "user", "content": user_question}
+                ],
+                "max_tokens": 400,
+                "temperature": 0.7
+            }
+    
+            try:
+                with st.spinner("Thinking..."):
+                    response = requests.post(API_URL, headers=headers, json=payload, timeout=120)
+    
+                if response.status_code == 200:
+                    result = response.json()
+                    answer = result["choices"][0]["message"]["content"]
+                    st.success("✅ AI Response")
+                    st.write(answer)
+                else:
+                    st.error(f"⚠️ API Error: {response.status_code}")
+                    st.caption(response.text)
+    
+            except Exception as e:
+                st.error("⚠️ Unable to generate response.")
+                st.caption(str(e))
+
 
 
 
