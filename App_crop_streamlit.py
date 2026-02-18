@@ -262,7 +262,7 @@ with tab1:
     paddy_price_avg = 25.0  # current average market rate in ₹/kg
 
     # Economic calculations
-    predicted_yield_total_kg = st.session_state.yield_pred * area
+    predicted_yield_total_kg = st.session_state.yield_pred * st.session_state.area
     predicted_revenue_total_rs = predicted_yield_total_kg * paddy_price_avg
     total_investment_rs = investment_cost
     profit_or_loss_rs = predicted_revenue_total_rs - total_investment_rs
@@ -283,7 +283,7 @@ with tab1:
     st.markdown("### 📊 Yield and Economic Analysis")
     st.markdown(f"""
     **Predicted yield:** {color_text(f'{st.session_state.yield_pred:.2f} kg/acre', ACCENT_COLOR)} ({yield_pct_html} of expected)  
-    **Total area:** {color_text(f'{area:.2f} acres', ACCENT_COLOR)}  
+    **Total area:** {color_text(f'{st.session_state.area:.2f} acres', ACCENT_COLOR)}  
     **Predicted total yield:** {color_text(f'{predicted_yield_total_kg:,.1f} kg', ACCENT_COLOR)}  
     **Market price used:** {price_html}  
     **Predicted total revenue:** {color_text(f'₹{predicted_revenue_total_rs:,.0f}', HIGHLIGHT_COLOR)}  
