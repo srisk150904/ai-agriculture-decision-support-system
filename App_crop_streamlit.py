@@ -262,6 +262,10 @@ tab1, tab2, tab3, tab4 = st.tabs([
 # ---------------------------------------------------
 # TAB 1 — YIELD AND ECONOMIC INTERPRETATION
 # ---------------------------------------------------
+if st.session_state.yield_pred is None:
+    st.info("Run prediction first to see economic interpretation.")
+    st.stop()
+
 with tab1:
     import datetime
     import re
@@ -606,8 +610,8 @@ def load_rag_components():
     # Load embedding model
     model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
-    # Load saved embeddings
-    embeddings = np.load("agri_embeddings.npy")
+    # Load embeddings
+    embeddings = np.load("agri_embeddings.npy").astype("float32")
 
     # Load QA data
     with open("agro_qa_data.pkl", "rb") as f:
@@ -638,7 +642,7 @@ with tab4:
         with st.spinner("🔎 Searching knowledge base..."):
 
             # 1️⃣ Encode query
-            query_embedding = model.encode([user_query])
+            query_embedding = model.encode([user_query]).astype("float32")
 
             # 2️⃣ Compute cosine similarity
             similarities = cosine_similarity(query_embedding, embeddings)[0]
