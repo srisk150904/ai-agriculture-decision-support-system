@@ -354,10 +354,7 @@ if "yield_pred" in locals() and "ndvi_val" in locals():
         st.subheader("🌿 AI-Powered Agronomic Advisory")
     
         # 🔐 Secure token from Streamlit Cloud
-        try:
-            HF_TOKEN = st.secrets["HF_TOKEN"]
-        except Exception:
-            HF_TOKEN = None
+        HF_TOKEN = st.secrets.get("HF_TOKEN")
     
         if not HF_TOKEN:
             st.error("⚠️ HuggingFace token not configured in Streamlit secrets.")
@@ -441,10 +438,11 @@ if "yield_pred" in locals() and "ndvi_val" in locals():
     
         st.subheader("💬 Ask the Agronomic AI (Live)")
     
-        try:
-            HF_TOKEN = st.secrets["HF_TOKEN"]
-        except Exception:
-            HF_TOKEN = None
+        # try:
+        #     HF_TOKEN = st.secrets["HF_TOKEN"]
+        # except Exception:
+        #     HF_TOKEN = None
+        HF_TOKEN = st.secrets.get("HF_TOKEN")
     
         if not HF_TOKEN:
             st.error("⚠️ HuggingFace token not configured.")
