@@ -6,6 +6,8 @@ import tempfile
 import pickle
 import numpy as np
 from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+
 
 from sklearn.preprocessing import PowerTransformer
 if "yield_pred" not in st.session_state:
