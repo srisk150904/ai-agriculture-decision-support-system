@@ -229,7 +229,7 @@ if st.button("🔍 Run Prediction"):
 # ======================================
 if "yield_pred" in locals() and "ndvi_val" in locals():
     # Create two tabs for cleaner layout
-    tab1, tab2 = st.tabs(["📈 Yield & Economic Summary", "🌿 AI-Powered Advisory"])
+    tab1, tab2, tab3 = st.tabs(["📈 Yield & Economic Summary", "🌿 AI-Powered Advisory", "Promt"])
 
     # ---------------------------------------------------
     # TAB 1 — YIELD AND ECONOMIC INTERPRETATION
