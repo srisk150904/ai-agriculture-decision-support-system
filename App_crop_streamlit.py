@@ -611,10 +611,10 @@ def load_rag_components():
     model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
     # Load embeddings
-    embeddings = np.load("agri_embeddings.npy").astype("float32")
+    embeddings = np.load("agri_embeddings (1).npy").astype("float32")
 
     # Load QA data
-    with open("agro_qa_data.pkl", "rb") as f:
+    with open("agro_qa_data (1).pkl", "rb") as f:
         data = pickle.load(f)
 
     return model, embeddings, data
