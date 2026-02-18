@@ -405,8 +405,7 @@ if "yield_pred" in locals() and "ndvi_val" in locals():
         6. Give yield outlook summary in one line, advice on what to do and what not, how to be carefull if choosing this land for growing paddy crops.
         7. End with one motivational but realistic sentence.
         
-        Keep it concise, practical, and farmer-focused.
-        Avoid long theory explanations.
+        Keep practical, and farmer-focused.
         """
 
     
