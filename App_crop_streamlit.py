@@ -608,7 +608,7 @@ def load_rag_components():
     embeddings = np.load("agri_embeddings.npy")
 
     # Load QA data
-    with open("agri_qa_data.pkl", "rb") as f:
+    with open("agro_qa_data.pkl", "rb") as f:
         data = pickle.load(f)
 
     return model, embeddings, data
