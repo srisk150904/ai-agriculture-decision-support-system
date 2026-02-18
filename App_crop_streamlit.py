@@ -4,6 +4,15 @@ import joblib
 import tensorflow as tf
 import tempfile
 from sklearn.preprocessing import PowerTransformer
+if "yield_pred" not in st.session_state:
+    st.session_state.yield_pred = None
+    st.session_state.ndvi_val = None
+    st.session_state.VH_VV_ratio = None
+    st.session_state.VV_mean = None
+    st.session_state.area = None
+    st.session_state.sow_mon = None
+    st.session_state.har_mon = None
+
 
 # ======================================
 # --- Utility functions ---
@@ -201,11 +210,18 @@ if st.button("🔍 Run Prediction"):
     
     # --- Predict yield ---
     yield_pred_log = float(lgbm_model.predict(full_input)[0])
-    yield_pred = np.expm1(yield_pred_log)
+    st.session_state.yield_pred = np.expm1(yield_pred_log)
+    st.session_state.ndvi_val = ndvi_val
+    st.session_state.VH_VV_ratio = VH_VV_ratio
+    st.session_state.VV_mean = VV_mean
+    st.session_state.area = area
+    st.session_state.sow_mon = sow_mon
+    st.session_state.har_mon = har_mon
+    st.session_state.VV_mean = VV_mean
 
 
     # --- Display results ---
-    st.success(f"**Predicted Yield:** {yield_pred:.2f} kg/acre 🌾")
+    st.success(f"**Predicted Yield:** {st.session_state.yield_pred:.2f} kg/acre 🌾")
 
     st.write("### 📊 Feature Summary")
     st.dataframe({
@@ -246,12 +262,12 @@ with tab1:
     paddy_price_avg = 25.0  # current average market rate in ₹/kg
 
     # Economic calculations
-    predicted_yield_total_kg = yield_pred * area
+    predicted_yield_total_kg = st.session_state.yield_pred * area
     predicted_revenue_total_rs = predicted_yield_total_kg * paddy_price_avg
     total_investment_rs = investment_cost
     profit_or_loss_rs = predicted_revenue_total_rs - total_investment_rs
     profit_margin_pct = (profit_or_loss_rs / total_investment_rs * 100) if total_investment_rs > 0 else 0
-    yield_pct_of_expected = (yield_pred / expected_yield_per_ha * 100) if expected_yield_per_ha > 0 else 0
+    yield_pct_of_expected = (st.session_state.yield_pred / expected_yield_per_ha * 100) if expected_yield_per_ha > 0 else 0
 
     # --- Styling helper ---
     def color_text(text, color="#4DD0E1"):  # teal accent
@@ -266,7 +282,7 @@ with tab1:
 
     st.markdown("### 📊 Yield and Economic Analysis")
     st.markdown(f"""
-    **Predicted yield:** {color_text(f'{yield_pred:.2f} kg/acre', ACCENT_COLOR)} ({yield_pct_html} of expected)  
+    **Predicted yield:** {color_text(f'{st.session_state.yield_pred:.2f} kg/acre', ACCENT_COLOR)} ({yield_pct_html} of expected)  
     **Total area:** {color_text(f'{area:.2f} acres', ACCENT_COLOR)}  
     **Predicted total yield:** {color_text(f'{predicted_yield_total_kg:,.1f} kg', ACCENT_COLOR)}  
     **Market price used:** {price_html}  
@@ -296,7 +312,7 @@ with tab1:
 
     st.markdown(
         f"**Yield Assessment:** {yield_text} "
-        f"(Predicted: {color_text(f'{yield_pred:.2f} kg/acre', HIGHLIGHT_COLOR)})",
+        f"(Predicted: {color_text(f'{st.session_state.yield_pred:.2f} kg/acre', HIGHLIGHT_COLOR)})",
         unsafe_allow_html=True
     )
 
@@ -317,34 +333,205 @@ with tab1:
     # NDVI + Radar insight
     st.subheader("🧠 Model Interpretation & Insights")
 
-    if ndvi_val < 0.3:
+    if st.session_state.ndvi_val < 0.3:
         ndvi_text = "indicates sparse or stressed vegetation — possibly due to poor germination, drought, or nutrient stress."
-    elif 0.3 <= ndvi_val < 0.6:
+    elif 0.3 <= st.session_state.ndvi_val < 0.6:
         ndvi_text = "represents moderate vegetation density, typical of crops in mid-growth or under mild stress."
     else:
         ndvi_text = "shows dense vegetation, healthy chlorophyll activity, and optimal photosynthetic performance."
-    st.markdown(f"**NDVI Insight:** NDVI = `{ndvi_val:.3f}` → {ndvi_text}")
+    st.markdown(f"**NDVI Insight:** NDVI = `{st.session_state.ndvi_val:.3f}` → {ndvi_text}")
 
-    if VH_VV_ratio < 0.4:
+    if st.session_state.VH_VV_ratio < 0.4:
         radar_text = "suggests a well-developed canopy with minimal soil exposure, indicating good vegetation cover."
-    elif 0.4 <= VH_VV_ratio < 0.8:
+    elif 0.4 <= st.session_state.VH_VV_ratio < 0.8:
         radar_text = "indicates moderate backscatter, consistent with balanced crop density and moisture."
     else:
         radar_text = "shows high backscatter, which could mean surface roughness, high moisture, or sparse vegetation."
-    st.markdown(f"**Radar Backscatter Insight:** VH/VV ratio = `{VH_VV_ratio:.3f}` → {radar_text}")
+    st.markdown(f"**Radar Backscatter Insight:** VH/VV ratio = `{st.session_state.VH_VV_ratio:.3f}` → {radar_text}")
 
     month_names = {1:"January",2:"February",3:"March",4:"April",5:"May",6:"June",7:"July",8:"August",9:"September",10:"October",11:"November",12:"December"}
-    sow_m = month_names.get(int(sow_mon), f"Month {sow_mon}")
-    har_m = month_names.get(int(har_mon), f"Month {har_mon}")
-    st.markdown(f"**Temporal Insight:** Crop sown in **{sow_m}** and harvested around **{har_m}**. Total growth duration: ~`{sow_to_trans_days + trans_to_har_days}` days.")
+    sow_m = month_names.get(int(st.session_state.sow_mon), f"Month {st.session_state.sow_mon}")
+    har_m = month_names.get(int(st.session_state.har_mon), f"Month {st.session_state.har_mon}")
+    st.markdown(f"**Temporal Insight:** Crop sown in **{st.session_state.sow_mon}** and harvested around **{st.session_state.har_mon}**. Total growth duration: ~`{sow_to_trans_days + trans_to_har_days}` days.")
 
     st.info(f"""
     **Summary Interpretation**
-    - Predicted yield: `{yield_pred:.2f} kg/ha` → {yield_text}
-    - NDVI: `{ndvi_val:.3f}` → {ndvi_text}
-    - Radar VH/VV ratio: `{VH_VV_ratio:.3f}` → {radar_text}
-    - Sowing–harvest period: {sow_m} to {har_m} (~{sow_to_trans_days + trans_to_har_days} days)
+    - Predicted yield: `{st.session_state.yield_pred:.2f} kg/ha` → {yield_text}
+    - NDVI: `{st.session_state.ndvi_val:.3f}` → {ndvi_text}
+    - Radar VH/VV ratio: `{st.session_state.VH_VV_ratio:.3f}` → {radar_text}
+    - Sowing–harvest period: {st.session_state.sow_mon} to {st.session_state.har_mon} (~{sow_to_trans_days + trans_to_har_days} days)
     """)
+
+# ---------------------------------------------------
+# TAB 2 — AI-GENERATED AGRONOMIC ADVISORY (HF Router - Chat API)
+# ---------------------------------------------------
+with tab2:
+    import requests
+    import streamlit as st
+
+    st.subheader("🌿 AI-Powered Agronomic Advisory")
+
+    # 🔐 Secure token from Streamlit Cloud
+    HF_TOKEN = st.secrets.get("HF_TOKEN")
+
+    if not HF_TOKEN:
+        st.error("⚠️ HuggingFace token not configured in Streamlit secrets.")
+        st.stop()
+
+    API_URL = "https://router.huggingface.co/v1/chat/completions"
+
+    headers = {
+        "Authorization": f"Bearer {HF_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
+    system_prompt = """
+    You are an expert agronomist specialized in paddy cultivation
+    in the Kaveri delta region of Tamil Nadu.
+
+    You provide highly practical, region-specific, field-level advice.
+    Avoid theory. Avoid generic advice.
+    Base reasoning strictly on provided field data.
+    """
+
+    user_prompt = f"""
+    FIELD DATA:
+    Area: {st.session_state.area:.2f} acres
+    Sowing Month: {st.session_state.sow_mon}
+    Harvest Month: {st.session_state.har_mon}
+    Sowing → Transplant Days: {sow_to_trans_days}
+    Transplant → Harvest Days: {trans_to_har_days}
+
+    SATELLITE METRICS:
+    NDVI: {st.session_state.ndvi_val:.3f}
+    VV_mean: {st.session_state.VV_mean:.3f}
+    VH_mean: {st.session_state.VH_VV_ratio:.3f}
+
+    MODEL OUTPUT:
+    Predicted Yield: {st.session_state.yield_pred:.2f} kg/acre
+
+    Provide:
+    1. NDVI interpretation
+    2. Radar moisture/canopy interpretation
+    3. Stress assessment
+    4. 3 actionable steps
+    5. Risk level (Low / Moderate / High)
+    6. One-line yield outlook
+    7. A realistic encouragement
+    """
+
+    payload = {
+        "model": "mistralai/Mistral-7B-Instruct-v0.2",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        "max_tokens": 350,
+        "temperature": 0.6
+    }
+
+    try:
+        with st.spinner("🧠 Generating AI advisory..."):
+            response = requests.post(API_URL, headers=headers, json=payload, timeout=120)
+
+        if response.status_code == 200:
+            result = response.json()
+            advisory = result["choices"][0]["message"]["content"]
+            st.success("✅ AI Advisory Generated")
+            st.write(advisory)
+        else:
+            st.error(f"⚠️ HuggingFace API Error: {response.status_code}")
+            st.caption(response.text)
+
+    except Exception as e:
+        st.error("⚠️ AI advisory unavailable.")
+        st.caption(str(e))
+
+# ---------------------------------------------------
+# TAB 3 — LIVE FARMER QUERY (Interactive GenAI)
+# ---------------------------------------------------
+with tab3:
+    import requests
+    import streamlit as st
+
+    st.subheader("💬 Ask the Agronomic AI (Live)")
+
+    HF_TOKEN = st.secrets.get("HF_TOKEN")
+
+    if not HF_TOKEN:
+        st.error("⚠️ HuggingFace token not configured.")
+        st.stop()
+
+    API_URL = "https://router.huggingface.co/v1/chat/completions"
+
+    headers = {
+        "Authorization": f"Bearer {HF_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
+    # 🎯 User Input Box
+    user_question = st.text_area(
+        "Ask your question about this land (Paddy – Kaveri Delta specific):",
+        placeholder="Example: Why is my yield low? Can I grow paddy here? How to increase profit? What crop is better?"
+    )
+
+    if st.button("Generate Answer"):
+
+        if not user_question.strip():
+            st.warning("Please enter a question.")
+            st.stop()
+
+        system_prompt = """
+        You are an expert agricultural decision-support AI
+        specialized in paddy cultivation in Kaveri delta region of Tamil Nadu.
+
+        You must:
+        - Answer only based on provided field data.
+        - Give practical, realistic advice.
+        - Avoid generic textbook answers.
+        - If yield is low, explain why using NDVI and radar.
+        - If crop suitability is asked, evaluate risk properly.
+        - If alternative crops are asked, suggest region-suitable options (e.g., sugarcane, pulses, maize).
+        """
+
+        context_data = f"""
+        FIELD CONTEXT:
+        Area: {st.session_state.area:.2f} acres
+        Sowing Month: {st.session_state.sow_mon}
+        Harvest Month: {st.session_state.har_mon}
+        NDVI: {st.session_state.ndvi_val:.3f}
+        VH/VV ratio: {st.session_state.VH_VV_ratio:.3f}
+        Predicted Paddy Yield: {st.session_state.yield_pred:.2f} kg/acre
+        """
+
+        payload = {
+            "model": "mistralai/Mistral-7B-Instruct-v0.2",
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": context_data},
+                {"role": "user", "content": user_question}
+            ],
+            "max_tokens": 400,
+            "temperature": 0.7
+        }
+
+        try:
+            with st.spinner("Thinking..."):
+                response = requests.post(API_URL, headers=headers, json=payload, timeout=120)
+
+            if response.status_code == 200:
+                result = response.json()
+                answer = result["choices"][0]["message"]["content"]
+                st.success("✅ AI Response")
+                st.write(answer)
+            else:
+                st.error(f"⚠️ API Error: {response.status_code}")
+                st.caption(response.text)
+
+        except Exception as e:
+            st.error("⚠️ Unable to generate response.")
+            st.caption(str(e))
+
 
 
 
