@@ -3,7 +3,6 @@ import numpy as np
 import joblib
 import tensorflow as tf
 import tempfile
-import faiss
 import pickle
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -601,14 +600,18 @@ with tab3:
 
 @st.cache_resource
 def load_rag_components():
-    model = SentenceTransformer("all-MiniLM-L6-v2")
 
-    index = faiss.read_index("agri_qa_faiss.index")
+    # Load embedding model
+    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
+    # Load saved embeddings
+    embeddings = np.load("agri_embeddings.npy")
+
+    # Load QA data
     with open("agri_qa_data.pkl", "rb") as f:
         data = pickle.load(f)
 
-    return model, index, data
+    return model, embeddings, data
 
 # ---------------------------------------------------
 # TAB 4 — Agricultural Knowledge Assistant (RAG)
@@ -617,7 +620,7 @@ with tab4:
 
     st.subheader("📚 Agricultural Knowledge Assistant (RAG Powered)")
 
-    model, index, data = load_rag_components()
+    model, embeddings, data = load_rag_components()
 
     user_query = st.text_area(
         "Ask any agriculture-related question:",
@@ -633,16 +636,18 @@ with tab4:
         with st.spinner("🔎 Searching knowledge base..."):
 
             # 1️⃣ Encode query
-            query_embedding = model.encode([user_query]).astype("float32")
+            query_embedding = model.encode([user_query])
 
-            # 2️⃣ Search FAISS
+            # 2️⃣ Compute cosine similarity
+            similarities = cosine_similarity(query_embedding, embeddings)[0]
+
+            # 3️⃣ Get top k results
             k = 3
-            distances, indices = index.search(query_embedding, k)
+            top_k_indices = similarities.argsort()[-k:][::-1]
 
-            # 3️⃣ Retrieve top matches
             st.success("Top Retrieved Answers:")
 
-            for i, idx in enumerate(indices[0]):
+            for i, idx in enumerate(top_k_indices):
                 st.markdown(f"### Result {i+1}")
                 st.write("**Q:**", data["questions"][idx])
                 st.write("**A:**", data["answers"][idx])
