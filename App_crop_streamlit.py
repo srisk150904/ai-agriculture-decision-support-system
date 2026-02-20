@@ -78,7 +78,7 @@ def compute_sentinel_features(sentinel_data):
 # ======================================
 # --- Streamlit App ---
 # ======================================
-st.title("🌾 Hybrid CNN + LightGBM Crop Yield Prediction")
+st.title("🌾 AI-Powered Agricultural Decision Support System")
 st.write("Upload **Landsat** and **Sentinel** patches along with metadata to predict crop yield using your trained models.")
 
 # --- Model Uploaders ---
